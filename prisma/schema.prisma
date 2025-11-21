@@ -10,21 +10,50 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-  id                       String    @id @default(uuid())
-  email                    String    @unique @db.VarChar(255)
-  password                 String    @db.VarChar(255)
-  name                     String?   @db.VarChar(100)
-  isEmailVerified          Boolean   @default(false) @map("is_email_verified")
-  emailVerificationCode    String?   @db.VarChar(10) @map("email_verification_code")
-  emailVerificationExpires DateTime? @map("email_verification_expires")
-  createdAt                DateTime  @default(now()) @map("created_at")
-  updatedAt                DateTime  @updatedAt @map("updated_at")
+  id                        String    @id @default(uuid())
+  email                     String    @unique @db.VarChar(255)
+  password                  String    @db.VarChar(255)
+  name                      String?   @db.VarChar(100)
+  isEmailVerified           Boolean   @default(false) @map("is_email_verified")
+  emailVerificationCode     String?   @db.VarChar(10) @map("email_verification_code")
+  emailVerificationExpires  DateTime? @map("email_verification_expires")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
+
+  products                  Product[] 
 
   @@index([email])
   @@index([isEmailVerified])
   @@index([createdAt])
   @@map("users")
+}
+
+enum ProductCategory {
+  ELECTRONICS
+  HOME_GARDEN
+  FASHION
+  BEAUTY
+  SPORTS
+  TOYS
+}
+
+model Product {
+  id              String          @id @default(uuid())
+  name            String
+  description     String?
+  category        ProductCategory
+  price           Float
+  images          String[]        @default([])
+  variations      Json?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  creatorId       String
+  creator         User            @relation(fields: [creatorId], references: [id])
+
+  @@index([creatorId])
 }

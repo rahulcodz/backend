@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { EmailModule } from './email/email.module';
 import { validate } from './config/env.validation';
+import { ProductsModule } from './products/products.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { validate } from './config/env.validation';
     PrismaModule,
     AuthModule,
     UsersModule,
+    ProductsModule,
     EmailModule,
   ],
   controllers: [AppController],
