@@ -1,0 +1,30 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                       String    @id @default(uuid())
+  email                    String    @unique @db.VarChar(255)
+  password                 String    @db.VarChar(255)
+  name                     String?   @db.VarChar(100)
+  isEmailVerified          Boolean   @default(false) @map("is_email_verified")
+  emailVerificationCode    String?   @db.VarChar(10) @map("email_verification_code")
+  emailVerificationExpires DateTime? @map("email_verification_expires")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@index([isEmailVerified])
+  @@index([createdAt])
+  @@map("users")
+}
