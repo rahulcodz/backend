@@ -28,11 +28,11 @@ model User {
   createdAt                DateTime  @default(now()) @map("created_at")
   updatedAt                DateTime  @updatedAt @map("updated_at")
 
-  products Product[]
-  cart     Cart?
-  orders   Order[]            @relation("BuyerOrders")
-  cartItemsSold  CartItem[]   @relation("SellerCartItems")
-  orderItemsSold OrderItem[]  @relation("SellerOrderItems")
+  products       Product[]
+  cart           Cart?
+  orders         Order[]     @relation("BuyerOrders")
+  cartItemsSold  CartItem[]  @relation("SellerCartItems")
+  orderItemsSold OrderItem[] @relation("SellerOrderItems")
 
   @@index([email])
   @@index([isEmailVerified])
@@ -47,6 +47,28 @@ enum ProductCategory {
   BEAUTY
   SPORTS
   TOYS
+}
+
+enum ProductUnit {
+  GRAM
+  KILOGRAM
+  MILLIGRAM
+  TONNE
+  POUND
+  OUNCE
+  LITER
+  MILLILITER
+  GALLON
+  BARREL
+  CUP
+  TEASPOON
+  TABLESPOON
+  CUBIC_METER
+  CUBIC_FOOT
+  PIECE
+  PACK
+  BAG
+  BOTTLE
 }
 
 enum Status {
@@ -71,6 +93,8 @@ model Product {
   description String?
   categories  ProductCategory[] // <-- changed from single category to array
   price       Float
+  quantity    Float             @default(1)
+  unit        ProductUnit       @default(KILOGRAM)
   images      String[]          @default([])
   variations  Json? // <-- optional: you said remove variations, remove this line if you want DB removed
   createdAt   DateTime          @default(now())
@@ -95,14 +119,14 @@ model Cart {
 }
 
 model CartItem {
-  id         String   @id @default(uuid())
-  cartId     String
-  productId  String
-  sellerId   String
-  quantity   Int      @default(1)
-  unitPrice  Float
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(uuid())
+  cartId    String
+  productId String
+  sellerId  String
+  quantity  Int      @default(1)
+  unitPrice Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -114,15 +138,15 @@ model CartItem {
 }
 
 model Order {
-  id         String       @id @default(uuid())
-  buyerId    String
-  buyer      User         @relation("BuyerOrders", fields: [buyerId], references: [id])
-  status     OrderStatus  @default(Pending)
+  id          String      @id @default(uuid())
+  buyerId     String
+  buyer       User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  status      OrderStatus @default(Pending)
   totalAmount Float
-  buyerNote  String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  items      OrderItem[]
+  buyerNote   String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  items       OrderItem[]
 
   @@index([buyerId])
   @@index([status])

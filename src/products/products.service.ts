@@ -18,6 +18,8 @@ export class ProductsService {
         description: createDto.description,
         categories: createDto.categories, // array
         price: createDto.price,
+        quantity: createDto.quantity,
+        unit: createDto.unit,
         images: createDto.images ?? [],
         creator: { connect: { id: creatorId } },
       },

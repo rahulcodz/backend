@@ -52,6 +52,16 @@ export class ProductsController {
           description: 'Array of ProductCategory enum values',
         },
         price: { type: 'number' },
+        quantity: {
+          type: 'number',
+          minimum: 0.0001,
+          description: 'Available quantity for the product',
+        },
+        unit: {
+          type: 'string',
+          enum: Object.values(require('@prisma/client').ProductUnit),
+          description: 'Unit associated with the provided quantity',
+        },
         images: {
           type: 'array',
           items: {
@@ -60,7 +70,7 @@ export class ProductsController {
           },
         },
       },
-      required: ['name', 'categories', 'price'],
+      required: ['name', 'categories', 'price', 'quantity', 'unit'],
     },
   })
   @ApiResponse({

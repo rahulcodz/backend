@@ -6,8 +6,9 @@ import {
   IsArray,
   ArrayNotEmpty,
   IsNumber,
+  IsPositive,
 } from 'class-validator';
-import { ProductCategory, Status } from '@prisma/client';
+import { ProductCategory, ProductUnit, Status } from '@prisma/client';
 
 export class CreateProductDto {
   @ApiProperty({
@@ -32,6 +33,22 @@ export class CreateProductDto {
 
   @IsNumber()
   price!: number;
+
+  @ApiProperty({
+    description: 'Available quantity for the product',
+    example: 10,
+  })
+  @IsNumber()
+  @IsPositive()
+  quantity!: number;
+
+  @ApiProperty({
+    description: 'Unit representing what the quantity stands for',
+    enum: ProductUnit,
+    example: ProductUnit.KILOGRAM,
+  })
+  @IsEnum(ProductUnit)
+  unit!: ProductUnit;
 
   @IsOptional()
   @IsArray()
