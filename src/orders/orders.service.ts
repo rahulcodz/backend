@@ -17,6 +17,7 @@ import {
   OrderResponseDto,
   UpdateCartItemDto,
 } from './dto';
+import { OrdersListResponseDto } from './dto/orders-list-response.dto';
 
 const cartQueryArgs = Prisma.validator<Prisma.CartDefaultArgs>()({
   include: {
@@ -39,7 +40,9 @@ const cartQueryArgs = Prisma.validator<Prisma.CartDefaultArgs>()({
 });
 type CartWithItems = Prisma.CartGetPayload<typeof cartQueryArgs>;
 
-const orderQueryArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
+type ViewerContext = 'buyer' | 'seller' | 'buyer_and_seller';
+
+const orderQueryArgs = {
   include: {
     items: {
       include: {
@@ -55,9 +58,41 @@ const orderQueryArgs = Prisma.validator<Prisma.OrderDefaultArgs>()({
       },
       orderBy: { createdAt: 'asc' },
     },
+    activities: {
+      include: {
+        author: {
+          select: {
+            id: true,
+            name: true,
+            profileUrl: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    },
   },
-});
-type OrderWithItems = Prisma.OrderGetPayload<typeof orderQueryArgs>;
+} as const;
+
+type OrderActivityRecord = {
+  id: string;
+  orderId: string;
+  authorId: string;
+  message: string;
+  createdAt: Date;
+  author?: {
+    id: string;
+    name: string | null;
+    profileUrl: string | null;
+  } | null;
+};
+
+type OrderWithItems = Prisma.OrderGetPayload<{
+  include: {
+    items: typeof orderQueryArgs.include.items;
+  };
+}> & {
+  activities: OrderActivityRecord[];
+};
 
 @Injectable()
 export class OrdersService {
@@ -198,11 +233,11 @@ export class OrdersService {
       throw new BadRequestException('No cart items selected for checkout');
     }
 
-    const order = await this.prisma.$transaction(async (tx) => {
+    const order = (await this.prisma.$transaction(async (tx) => {
       const createdOrder = await tx.order.create({
         data: {
           buyerId: userId,
-          status: OrderStatus.Pending,
+          status: OrderStatus.Received,
           totalAmount: items.reduce(
             (sum, item) => sum + item.quantity * item.unitPrice,
             0,
@@ -218,7 +253,7 @@ export class OrdersService {
             })),
           },
         },
-        ...orderQueryArgs,
+        ...(orderQueryArgs as any),
       });
 
       await tx.cartItem.deleteMany({
@@ -228,35 +263,92 @@ export class OrdersService {
       });
 
       return createdOrder;
-    });
+    })) as OrderWithItems;
 
-    return this.toOrderResponse(order);
+    return this.toOrderResponse(order, userId);
   }
 
   async listBuyerOrders(userId: string): Promise<OrderResponseDto[]> {
-    const orders = await this.prisma.order.findMany({
+    const orders = ((await this.prisma.order.findMany({
       where: { buyerId: userId },
       orderBy: { createdAt: 'desc' },
-      include: orderQueryArgs.include,
-    });
-    return orders.map((order) => this.toOrderResponse(order));
+      include: orderQueryArgs.include as any,
+    })) as unknown) as OrderWithItems[];
+    return orders.map((order) => this.toOrderResponse(order, userId));
   }
 
   async listSales(userId: string): Promise<OrderResponseDto[]> {
-    const orders = await this.prisma.order.findMany({
+    const orders = ((await this.prisma.order.findMany({
       where: {
         items: { some: { sellerId: userId } },
       },
       orderBy: { createdAt: 'desc' },
-      include: orderQueryArgs.include,
+      include: orderQueryArgs.include as any,
+    })) as unknown) as OrderWithItems[];
+    return orders.map((order) => this.toOrderResponse(order, userId));
+  }
+
+  async listOrdersByRole(userId: string): Promise<OrdersListResponseDto> {
+    const [buyerOrdersRaw, sellerOrdersRaw] = await this.prisma.$transaction([
+      this.prisma.order.findMany({
+        where: { buyerId: userId },
+        orderBy: { createdAt: 'desc' },
+        include: orderQueryArgs.include as any,
+      }),
+      this.prisma.order.findMany({
+        where: { items: { some: { sellerId: userId } } },
+        orderBy: { createdAt: 'desc' },
+        include: orderQueryArgs.include as any,
+      }),
+    ]);
+
+    const buyerOrders = ((buyerOrdersRaw as unknown) as OrderWithItems[]).map((order) =>
+      this.toOrderResponse(order, userId),
+    );
+    const sellerOrders = ((sellerOrdersRaw as unknown) as OrderWithItems[]).map((order) =>
+      this.toOrderResponse(order, userId),
+    );
+
+    return plainToInstance(OrdersListResponseDto, {
+      buyerOrders,
+      sellerOrders,
     });
-    return orders.map((order) => this.toOrderResponse(order));
   }
 
   async getOrder(userId: string, orderId: string): Promise<OrderResponseDto> {
+    const order = (await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: orderQueryArgs.include as any,
+    })) as OrderWithItems | null;
+
+    if (!order) {
+      throw new NotFoundException('Order not found');
+    }
+
+    const isBuyer = order.buyerId === userId;
+    const isSeller = order.items.some((item) => item.sellerId === userId);
+
+    if (!isBuyer && !isSeller) {
+      throw new ForbiddenException('You do not have access to this order');
+    }
+
+    return this.toOrderResponse(order, userId);
+  }
+
+  async addOrderActivity(
+    userId: string,
+    orderId: string,
+    message: string,
+  ): Promise<OrderResponseDto> {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: orderQueryArgs.include,
+      include: {
+        items: {
+          select: {
+            sellerId: true,
+          },
+        },
+      },
     });
 
     if (!order) {
@@ -270,7 +362,20 @@ export class OrdersService {
       throw new ForbiddenException('You do not have access to this order');
     }
 
-    return this.toOrderResponse(order);
+    await (this.prisma as any).orderActivity.create({
+      data: {
+        orderId,
+        authorId: userId,
+        message,
+      },
+    });
+
+    const refreshed = (await this.prisma.order.findUniqueOrThrow({
+      where: { id: orderId },
+      ...(orderQueryArgs as any),
+    })) as OrderWithItems;
+
+    return this.toOrderResponse(refreshed, userId);
   }
 
   private async ensureCart(userId: string) {
@@ -321,7 +426,7 @@ export class OrdersService {
     });
   }
 
-  private toOrderResponse(order: OrderWithItems): OrderResponseDto {
+  private toOrderResponse(order: OrderWithItems, viewerId?: string): OrderResponseDto {
     const items: OrderItemResponseDto[] = order.items.map((item) =>
       plainToInstance(OrderItemResponseDto, {
         id: item.id,
@@ -342,6 +447,21 @@ export class OrdersService {
       }),
     );
 
+    const activities = order.activities.map((activity) => ({
+      id: activity.id,
+      orderId: activity.orderId,
+      authorId: activity.authorId,
+      message: activity.message,
+      createdAt: activity.createdAt,
+      author: activity.author && {
+        id: activity.author.id,
+        name: activity.author.name,
+        profileUrl: activity.author.profileUrl,
+      },
+    }));
+
+    const { viewerContext, allowedActions } = this.resolveViewerContext(order, viewerId);
+
     return plainToInstance(OrderResponseDto, {
       id: order.id,
       buyerId: order.buyerId,
@@ -351,6 +471,40 @@ export class OrdersService {
       createdAt: order.createdAt,
       updatedAt: order.updatedAt,
       items,
+      activities,
+      viewerContext,
+      allowedActions,
     });
+  }
+
+  private resolveViewerContext(order: OrderWithItems, viewerId?: string): {
+    viewerContext?: ViewerContext;
+    allowedActions?: string[];
+  } {
+    if (!viewerId) return { viewerContext: undefined, allowedActions: undefined };
+
+    const isBuyer = order.buyerId === viewerId;
+    const isSeller = order.items.some((item) => item.sellerId === viewerId);
+
+    let viewerContext: ViewerContext | undefined;
+    if (isBuyer && isSeller) viewerContext = 'buyer_and_seller';
+    else if (isBuyer) viewerContext = 'buyer';
+    else if (isSeller) viewerContext = 'seller';
+
+    const allowedActions: string[] = [];
+    if (viewerContext) {
+      allowedActions.push('addRemark');
+    }
+    if (isSeller) {
+      if (order.status === OrderStatus.Received) {
+        allowedActions.push('accept');
+      }
+      allowedActions.push('updateStatus');
+    }
+
+    return {
+      viewerContext,
+      allowedActions: allowedActions.length ? allowedActions : undefined,
+    };
   }
 }

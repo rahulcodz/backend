@@ -33,6 +33,7 @@ model User {
   orders         Order[]     @relation("BuyerOrders")
   cartItemsSold  CartItem[]  @relation("SellerCartItems")
   orderItemsSold OrderItem[] @relation("SellerOrderItems")
+  orderActivities OrderActivity[] @relation("OrderActivityAuthors")
 
   @@index([email])
   @@index([isEmailVerified])
@@ -80,6 +81,8 @@ enum Status {
 
 enum OrderStatus {
   Pending
+  Received
+  Accepted
   Paid
   Shipped
   Delivered
@@ -91,7 +94,7 @@ model Product {
   name        String
   status      Status            @default(Draft)
   description String?
-  categories  ProductCategory[] // <-- changed from single category to array
+  categories  ProductCategory[]
   price       Float
   quantity    Float             @default(1)
   unit        ProductUnit       @default(KILOGRAM)
@@ -141,12 +144,13 @@ model Order {
   id          String      @id @default(uuid())
   buyerId     String
   buyer       User        @relation("BuyerOrders", fields: [buyerId], references: [id])
-  status      OrderStatus @default(Pending)
+  status      OrderStatus @default(Received)
   totalAmount Float
   buyerNote   String?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   items       OrderItem[]
+  activities  OrderActivity[]
 
   @@index([buyerId])
   @@index([status])
@@ -171,4 +175,18 @@ model OrderItem {
   @@index([orderId])
   @@index([sellerId])
   @@index([productId])
+}
+
+model OrderActivity {
+  id        String   @id @default(uuid())
+  orderId   String
+  authorId  String
+  message   String   @db.Text
+  createdAt DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  author User  @relation("OrderActivityAuthors", fields: [authorId], references: [id])
+
+  @@index([orderId])
+  @@index([authorId])
 }

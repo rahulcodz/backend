@@ -17,7 +17,6 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { AuthUser } from '../types/auth.types';
 import { OrdersService } from './orders.service';
 import {
   AddCartItemDto,
@@ -26,6 +25,8 @@ import {
   OrderResponseDto,
   UpdateCartItemDto,
 } from './dto';
+import { OrdersListResponseDto } from './dto/orders-list-response.dto';
+import { AddOrderActivityDto } from './dto/add-order-activity.dto';
 import * as authTypes from '../types/auth.types';
 
 @ApiTags('Orders')
@@ -119,6 +120,17 @@ export class OrdersController {
     return this.ordersService.listBuyerOrders(user.userId);
   }
 
+  @Get('overview')
+  @ApiOperation({
+    summary: 'List both buyer and seller order views in one payload',
+  })
+  @ApiResponse({ status: 200, type: OrdersListResponseDto })
+  async listOrdersByRole(
+    @CurrentUser() user: authTypes.AuthUser,
+  ): Promise<OrdersListResponseDto> {
+    return this.ordersService.listOrdersByRole(user.userId);
+  }
+
   @Get('sales')
   @ApiOperation({
     summary: 'List orders that include products sold by the user',
@@ -136,5 +148,17 @@ export class OrdersController {
     @Param('orderId') orderId: string,
   ): Promise<OrderResponseDto> {
     return this.ordersService.getOrder(user.userId, orderId);
+  }
+
+  @Post(':orderId/activity')
+  @ApiOperation({ summary: 'Add a remark to the order timeline (buyer/seller)' })
+  @ApiBody({ type: AddOrderActivityDto })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  async addOrderActivity(
+    @CurrentUser() user: authTypes.AuthUser,
+    @Param('orderId') orderId: string,
+    @Body() dto: AddOrderActivityDto,
+  ): Promise<OrderResponseDto> {
+    return this.ordersService.addOrderActivity(user.userId, orderId, dto.message);
   }
 }
