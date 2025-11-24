@@ -1,6 +1,6 @@
 export class UploadResponseDto {
   filename!: string;
-  path!: string; // local server path
+  path!: string; // S3 object key
   mimetype!: string;
   size!: number;
   url?: string; // public URL if static serving configured

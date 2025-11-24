@@ -52,14 +52,12 @@ export class UploadsController {
   })
   async uploadImages(
     @UploadedFiles() files: Express.Multer.File[],
-    @Req() req,
+    @Req() req: Request,
   ): Promise<UploadResponseDto[]> {
     if (!files || files.length === 0) {
       throw new HttpException('No files uploaded', HttpStatus.BAD_REQUEST);
     }
 
-    // delegate formatting / url construction to service
-    const responses = this.uploadsService.formatUploadedFiles(files, req);
-    return responses;
+    return this.uploadsService.uploadFilesToS3(files, req);
   }
 }

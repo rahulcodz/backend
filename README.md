@@ -57,6 +57,23 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
+## AWS S3 configuration
+
+The uploads API now streams files directly to Amazon S3. Make sure the
+following environment variables are provided before calling `POST /uploads/images`:
+
+- `AWS_REGION`
+- `AWS_S3_BUCKET`
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+
+Optional overrides:
+
+- `AWS_S3_UPLOAD_PREFIX` (defaults to `uploads/products`)
+- `AWS_S3_PUBLIC_URL` (base URL used to build public image links)
+- `AWS_S3_ACL` (for example `public-read`)
+- `AWS_S3_ENDPOINT` and `AWS_S3_FORCE_PATH_STYLE` for S3-compatible storage
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
