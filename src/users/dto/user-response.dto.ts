@@ -55,6 +55,39 @@ export class UserResponseDto {
   @Exclude()
   emailVerificationExpires?: Date;
 
+  @ApiProperty({
+    description: 'URL to the user profile/avatar',
+    type: String,
+    example: 'https://example.com/avatar.jpg',
+  })
+  @Expose()
+  profileUrl?: string;
+
+  @ApiProperty({
+    description: 'User phone number',
+    type: String,
+    example: '+14155552671',
+  })
+  @Expose()
+  phone?: string;
+
+  @ApiProperty({
+    description: 'User location (city, region, etc.)',
+    type: String,
+    example: 'San Francisco, CA',
+  })
+  @Expose()
+  location?: string;
+
+  @ApiProperty({
+    description: 'Short bio/about text for the user',
+    type: String,
+    example: 'Full-stack developer and coffee enthusiast.',
+    maxLength: 500,
+  })
+  @Expose()
+  bio?: string;
+
   constructor(partial: Partial<UserResponseDto>) {
     Object.assign(this, partial);
   }

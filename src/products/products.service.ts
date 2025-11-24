@@ -1,5 +1,4 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -10,50 +9,56 @@ import { ProductResponseDto } from './dto/product-response.dto';
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
-  async create(createDto: CreateProductDto, imagePaths: string[], creatorId: string) {
+  async create(createDto: CreateProductDto, creatorId: string) {
     const product = await this.prisma.product.create({
       data: {
         name: createDto.name,
         description: createDto.description,
-        category: createDto.category,
+        categories: createDto.categories, // array
         price: createDto.price,
-        images: imagePaths,
-        // cast to Prisma.InputJsonValue
-        variations: (createDto.variations ?? []) as unknown as Prisma.InputJsonValue,
+        images: createDto.images ?? [],
         creator: { connect: { id: creatorId } },
       },
     });
     return plainToInstance(ProductResponseDto, product);
   }
 
-  async findAll() {
-    const products = await this.prisma.product.findMany();
+  async findAll(current_userId: string) {
+    const products = await this.prisma.product.findMany({ where: { creatorId: current_userId } });
     return products.map((p) => plainToInstance(ProductResponseDto, p));
   }
 
   async findOne(id: string) {
-    const product = await this.prisma.product.findUnique({ where: { id } });
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            name: true,
+            profileUrl: true,
+            location: true,
+          },
+        },
+      },
+    });
     if (!product) throw new NotFoundException('Product not found');
     return plainToInstance(ProductResponseDto, product);
   }
 
-  async update(id: string, updateDto: UpdateProductDto, newImagePaths?: string[]) {
-    const existing = await this.prisma.product.findUnique({ where: { id } });
+  async update(id: string, updateDto: UpdateProductDto, current_userId: string) {
+    const existing = await this.prisma.product.findUnique({ where: { id: id, creatorId: current_userId } });
     if (!existing) throw new NotFoundException('Product not found');
 
     const data: any = {
       ...updateDto,
     };
 
-    if (newImagePaths && newImagePaths.length) {
-      data.images = [...(existing.images ?? []), ...newImagePaths];
-    }
-
-    // ensure variations is a valid JSON value for Prisma
-    if ((updateDto as any).variations !== undefined) {
-      data.variations = (updateDto as any).variations as unknown as Prisma.InputJsonValue;
+    // If images provided in body, replace (or merge per your requirement)
+    if (updateDto.images !== undefined) {
+      data.images = updateDto.images;
     }
 
     const updated = await this.prisma.product.update({
@@ -64,10 +69,17 @@ export class ProductsService {
     return plainToInstance(ProductResponseDto, updated);
   }
 
-  async remove(id: string) {
-    const existing = await this.prisma.product.findUnique({ where: { id } });
+  async remove(id: string, current_userId: string) {
+    const existing = await this.prisma.product.findUnique({ where: { id: id, creatorId: current_userId } });
     if (!existing) throw new NotFoundException('Product not found');
     await this.prisma.product.delete({ where: { id } });
     return { success: true };
+  }
+
+  async findByCreator(creatorId: string) {
+    const products = await this.prisma.product.findMany({
+      where: { creatorId },
+    });
+    return products.map((p) => plainToInstance(ProductResponseDto, p));
   }
 }

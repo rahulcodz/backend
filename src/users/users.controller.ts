@@ -42,7 +42,9 @@ export class UsersController {
     status: 404,
     description: 'User not found',
   })
-  async getProfile(@CurrentUser() user: authTypes.AuthUser): Promise<UserResponseDto> {
+  async getProfile(
+    @CurrentUser() user: authTypes.AuthUser,
+  ): Promise<UserResponseDto> {
     return this.usersService.getProfile(user.userId);
   }
 

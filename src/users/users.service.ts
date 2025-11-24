@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { plainToClass } from 'class-transformer';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserResponseDto, UpdateUserDto } from './dto';
+import { UserResponseDto } from './dto/user-response.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
@@ -14,6 +15,18 @@ export class UsersService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        profileUrl: true,
+        phone: true,
+        location: true,
+        bio: true,
+      },
     });
 
     if (!user) {
@@ -35,6 +48,7 @@ export class UsersService {
     // Check if user exists
     const existingUser = await this.prisma.user.findUnique({
       where: { id: userId },
+      select: { id: true },
     });
 
     if (!existingUser) {
@@ -42,9 +56,30 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    // Only include allowed fields and only when they are provided
+    const { name, profileUrl, phone, location, bio } = updateUserDto;
+    const data: any = {};
+    if (name !== undefined) data.name = name;
+    if (profileUrl !== undefined) data.profileUrl = profileUrl;
+    if (phone !== undefined) data.phone = phone;
+    if (location !== undefined) data.location = location;
+    if (bio !== undefined) data.bio = bio;
+
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
-      data: updateUserDto,
+      data,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        profileUrl: true,
+        phone: true,
+        location: true,
+        bio: true,
+      },
     });
 
     this.logger.log(`Profile updated successfully for user ID: ${userId}`);
@@ -59,6 +94,18 @@ export class UsersService {
 
     const users = await this.prisma.user.findMany({
       orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        profileUrl: true,
+        phone: true,
+        location: true,
+        bio: true,
+      },
     });
 
     return users.map((user) =>

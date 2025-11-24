@@ -4,10 +4,9 @@ export class ProductResponseDto {
   id!: string;
   name!: string;
   description?: string;
-  category!: ProductCategory;
+  categories!: ProductCategory[]; // multiple categories
   price!: number;
-  images?: string[]; // stored paths/urls
-  variations?: any; // Json stored variations
+  images?: string[];
   creatorId!: string;
   createdAt?: Date;
   updatedAt?: Date;

@@ -14,17 +14,25 @@ datasource db {
 }
 
 model User {
-  id                        String    @id @default(uuid())
-  email                     String    @unique @db.VarChar(255)
-  password                  String    @db.VarChar(255)
-  name                      String?   @db.VarChar(100)
-  isEmailVerified           Boolean   @default(false) @map("is_email_verified")
-  emailVerificationCode     String?   @db.VarChar(10) @map("email_verification_code")
-  emailVerificationExpires  DateTime? @map("email_verification_expires")
-  createdAt                 DateTime  @default(now()) @map("created_at")
-  updatedAt                 DateTime  @updatedAt @map("updated_at")
+  id                       String    @id @default(uuid())
+  email                    String    @unique @db.VarChar(255)
+  password                 String    @db.VarChar(255)
+  name                     String?   @db.VarChar(100)
+  profileUrl               String?   @map("profile_url") @db.VarChar(255)
+  phone                    String?   @db.VarChar(20)
+  location                 String?   @db.VarChar(255)
+  bio                      String?   @db.Text
+  isEmailVerified          Boolean   @default(false) @map("is_email_verified")
+  emailVerificationCode    String?   @map("email_verification_code") @db.VarChar(10)
+  emailVerificationExpires DateTime? @map("email_verification_expires")
+  createdAt                DateTime  @default(now()) @map("created_at")
+  updatedAt                DateTime  @updatedAt @map("updated_at")
 
-  products                  Product[] 
+  products Product[]
+  cart     Cart?
+  orders   Order[]            @relation("BuyerOrders")
+  cartItemsSold  CartItem[]   @relation("SellerCartItems")
+  orderItemsSold OrderItem[]  @relation("SellerOrderItems")
 
   @@index([email])
   @@index([isEmailVerified])
@@ -41,19 +49,102 @@ enum ProductCategory {
   TOYS
 }
 
-model Product {
-  id              String          @id @default(uuid())
-  name            String
-  description     String?
-  category        ProductCategory
-  price           Float
-  images          String[]        @default([])
-  variations      Json?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+enum Status {
+  Active
+  Draft
+  Paused
+  Sold
+}
 
-  creatorId       String
-  creator         User            @relation(fields: [creatorId], references: [id])
+enum OrderStatus {
+  Pending
+  Paid
+  Shipped
+  Delivered
+  Cancelled
+}
+
+model Product {
+  id          String            @id @default(uuid())
+  name        String
+  status      Status            @default(Draft)
+  description String?
+  categories  ProductCategory[] // <-- changed from single category to array
+  price       Float
+  images      String[]          @default([])
+  variations  Json? // <-- optional: you said remove variations, remove this line if you want DB removed
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  creatorId   String
+  creator     User              @relation(fields: [creatorId], references: [id])
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
 
   @@index([creatorId])
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @unique
+  user      User       @relation(fields: [userId], references: [id])
+  items     CartItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([createdAt])
+}
+
+model CartItem {
+  id         String   @id @default(uuid())
+  cartId     String
+  productId  String
+  sellerId   String
+  quantity   Int      @default(1)
+  unitPrice  Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  seller  User    @relation("SellerCartItems", fields: [sellerId], references: [id])
+
+  @@unique([cartId, productId])
+  @@index([productId])
+  @@index([sellerId])
+}
+
+model Order {
+  id         String       @id @default(uuid())
+  buyerId    String
+  buyer      User         @relation("BuyerOrders", fields: [buyerId], references: [id])
+  status     OrderStatus  @default(Pending)
+  totalAmount Float
+  buyerNote  String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  items      OrderItem[]
+
+  @@index([buyerId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String
+  productId String
+  sellerId  String
+  quantity  Int
+  unitPrice Float
+  subtotal  Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+  seller  User    @relation("SellerOrderItems", fields: [sellerId], references: [id])
+
+  @@index([orderId])
+  @@index([sellerId])
+  @@index([productId])
 }

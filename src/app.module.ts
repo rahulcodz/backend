@@ -8,6 +8,8 @@ import { UsersModule } from './users/users.module';
 import { EmailModule } from './email/email.module';
 import { validate } from './config/env.validation';
 import { ProductsModule } from './products/products.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { ProductsModule } from './products/products.module';
     UsersModule,
     ProductsModule,
     EmailModule,
+    UploadsModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

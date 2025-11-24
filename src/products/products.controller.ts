@@ -6,23 +6,18 @@ import {
   Delete,
   Param,
   Body,
-  UploadedFiles,
-  UseInterceptors,
   UseGuards,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
-  ApiConsumes,
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiBody,
 } from '@nestjs/swagger';
 import { ProductsService } from './products.service';
-import { productMulterOptions } from './multer.options';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductResponseDto } from './dto/product-response.dto';
@@ -35,109 +30,98 @@ import * as authTypes from '../types/auth.types';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) {}
+  constructor(private readonly productsService: ProductsService) { }
 
   @Post()
-  @ApiOperation({ summary: 'Create a new product with multiple images' })
-  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary:
+      'Create a new product (JSON body). Images optional (array of URLs/paths).',
+  })
   @ApiBody({
     schema: {
       type: 'object',
       properties: {
         name: { type: 'string' },
         description: { type: 'string' },
-        category: { type: 'string', description: 'One of the ProductCategory enum values' },
-        price: { type: 'number' },
-        variations: {
-          type: 'string',
-          description: 'JSON stringified array of variations: [{ size, color, quantity, price }, ...]',
+        categories: {
+          type: 'array',
+          items: {
+            type: 'string',
+            enum: Object.values(require('@prisma/client').ProductCategory),
+          },
+          description: 'Array of ProductCategory enum values',
         },
+        price: { type: 'number' },
         images: {
           type: 'array',
-          items: { type: 'string', format: 'binary' },
+          items: {
+            type: 'string',
+            description: 'Optional image URLs or paths',
+          },
         },
       },
-      required: ['name', 'category', 'price'],
+      required: ['name', 'categories', 'price'],
     },
   })
-  @UseInterceptors(FilesInterceptor('images', 10, productMulterOptions))
-  @ApiResponse({ status: 201, description: 'Product created', type: ProductResponseDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Product created',
+    type: ProductResponseDto,
+  })
   @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   async create(
     @CurrentUser() user: authTypes.AuthUser,
     @Body() createDto: CreateProductDto,
-    @UploadedFiles() images: Express.Multer.File[],
   ) {
-    if ((createDto as any).variations && typeof (createDto as any).variations === 'string') {
-      try {
-        (createDto as any).variations = JSON.parse((createDto as any).variations);
-      } catch {
-        (createDto as any).variations = [];
-      }
-    }
-
-    const imagePaths = (images || []).map((f) => f.path.replace(/\\/g, '/'));
-    return this.productsService.create(createDto, imagePaths, user.userId);
+    // images are optional and provided in body
+    return this.productsService.create(createDto, user.userId);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all products' })
-  @ApiResponse({ status: 200, description: 'List of products', type: [ProductResponseDto] })
-  async findAll() {
-    return this.productsService.findAll();
+  @ApiResponse({
+    status: 200,
+    description: 'List of products',
+    type: [ProductResponseDto],
+  })
+  async findAll(@CurrentUser() user: authTypes.AuthUser) {
+    return this.productsService.findAll(user.userId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get product by id' })
-  @ApiResponse({ status: 200, description: 'Product found', type: ProductResponseDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Product found',
+    type: ProductResponseDto,
+  })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
   }
 
-  @Put(':id')
-  @ApiOperation({ summary: 'Update a product (optionally upload new images)' })
-  @ApiConsumes('multipart/form-data')
-  @ApiBody({
-    schema: {
-      type: 'object',
-      properties: {
-        name: { type: 'string' },
-        description: { type: 'string' },
-        category: { type: 'string' },
-        price: { type: 'number' },
-        variations: {
-          type: 'string',
-          description: 'JSON stringified array of variations',
-        },
-        images: {
-          type: 'array',
-          items: { type: 'string', format: 'binary' },
-        },
-      },
-    },
+  @Get('creator/:creatorId')
+  @ApiOperation({ summary: 'Get products by creator id' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of products by creator',
+    type: [ProductResponseDto],
   })
-  @UseInterceptors(FilesInterceptor('images', 10, productMulterOptions))
-  @ApiResponse({ status: 200, description: 'Product updated', type: ProductResponseDto })
-  @ApiResponse({ status: 400, description: 'Validation error' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'Product not found' })
-  async update(
-    @Param('id') id: string,
-    @Body() updateDto: UpdateProductDto,
-    @UploadedFiles() images?: Express.Multer.File[],
-  ) {
-    if ((updateDto as any).variations && typeof (updateDto as any).variations === 'string') {
-      try {
-        (updateDto as any).variations = JSON.parse((updateDto as any).variations);
-      } catch {
-        (updateDto as any).variations = [];
-      }
-    }
+  async findByCreator(@Param('creatorId') creatorId: string) {
+    return this.productsService.findByCreator(creatorId);
+  }
 
-    const imagePaths = (images || []).map((f) => f.path.replace(/\\/g, '/'));
-    return this.productsService.update(id, updateDto, imagePaths);
+  @Put(':id')
+  @ApiOperation({ summary: 'Update a product (JSON body). Images optional.' })
+  @ApiBody({ type: UpdateProductDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Product updated',
+    type: ProductResponseDto,
+  })
+  async update(@Param('id') id: string, @Body() updateDto: UpdateProductDto, @CurrentUser() user: authTypes.AuthUser) {
+    return this.productsService.update(id, updateDto, user.userId);
   }
 
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -146,7 +130,7 @@ export class ProductsController {
   @ApiResponse({ status: 204, description: 'Product deleted' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Product not found' })
-  async remove(@Param('id') id: string) {
-    await this.productsService.remove(id);
+  async remove(@Param('id') id: string, @CurrentUser() user: authTypes.AuthUser) {
+    await this.productsService.remove(id, user.userId);
   }
 }

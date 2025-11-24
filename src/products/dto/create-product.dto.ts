@@ -1,26 +1,48 @@
-import { IsString, IsOptional, IsNumber, IsEnum, IsArray, ValidateNested } from 'class-validator';
-import { Type } from 'class-transformer';
-import { ProductVariationDto } from './product-variation.dto';
-import { ProductCategory } from '@prisma/client';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsString,
+  IsOptional,
+  IsEnum,
+  IsArray,
+  ArrayNotEmpty,
+  IsNumber,
+} from 'class-validator';
+import { ProductCategory, Status } from '@prisma/client';
 
 export class CreateProductDto {
+  @ApiProperty({
+    description: 'Product name',
+    example: 'Sample Product',
+  })
   @IsString()
-  name!: string;
+  name: string;
 
+  @ApiPropertyOptional({
+    description: 'Product description',
+    example: 'This is a sample product description',
+  })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @IsEnum(ProductCategory)
-  category!: ProductCategory;
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsEnum(ProductCategory, { each: true })
+  categories!: ProductCategory[];
 
   @IsNumber()
-  @Type(() => Number)
   price!: number;
 
   @IsOptional()
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => ProductVariationDto)
-  variations?: ProductVariationDto[];
+  images?: string[]; // optional array of image URLs/paths
+
+  @ApiPropertyOptional({
+    description: 'Product status',
+    enum: Status,
+    example: Status.Active,
+  })
+  @IsOptional()
+  @IsEnum(Status)
+  status?: Status;
 }
