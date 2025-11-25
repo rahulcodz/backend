@@ -37,6 +37,7 @@ model User {
   addresses       UserAddress[]
   accountSetting  UserAccountSetting?
   helpRequests    UserHelpRequest[]
+  notifications   Notification[]
 
   @@index([email])
   @@index([isEmailVerified])
@@ -90,6 +91,12 @@ enum OrderStatus {
   Shipped
   Delivered
   Cancelled
+}
+
+enum NotificationType {
+  ORDER_STATUS
+  ORDER_ACTIVITY
+  SYSTEM
 }
 
 model Product {
@@ -154,6 +161,7 @@ model Order {
   updatedAt   DateTime    @updatedAt
   items       OrderItem[]
   activities  OrderActivity[]
+  notifications Notification[]
 
   @@index([buyerId])
   @@index([status])
@@ -255,4 +263,24 @@ model UserHelpRequest {
 
   @@index([userId])
   @@map("user_help_requests")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  orderId   String?
+  type      NotificationType
+  title     String           @db.VarChar(180)
+  message   String           @db.Text
+  metadata  Json?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order Order? @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([orderId])
+  @@map("notifications")
 }

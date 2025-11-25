@@ -12,6 +12,7 @@ import { UploadsModule } from './uploads/uploads.module';
 import { OrdersModule } from './orders/orders.module';
 import { AdminModule } from './admin/admin.module';
 import { BrowseModule } from './browse/browse.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { BrowseModule } from './browse/browse.module';
     OrdersModule,
     AdminModule,
     BrowseModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

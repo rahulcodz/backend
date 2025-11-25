@@ -5,9 +5,15 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { OrderStatus, Prisma, Status as ProductStatus } from '@prisma/client';
+import {
+  NotificationType,
+  OrderStatus,
+  Prisma,
+  Status as ProductStatus,
+} from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService, CreateNotificationInput } from '../notifications/notifications.service';
 import {
   AddCartItemDto,
   CartItemResponseDto,
@@ -105,7 +111,10 @@ type OrderWithItems = Prisma.OrderGetPayload<{
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async getCart(userId: string): Promise<CartResponseDto> {
     const cart = await this.ensureCart(userId);
@@ -272,6 +281,8 @@ export class OrdersService {
       return createdOrder;
     })) as OrderWithItems;
 
+    await this.notifyOrderCreated(order);
+
     return this.toOrderResponse(order, userId);
   }
 
@@ -382,6 +393,8 @@ export class OrdersService {
       ...(orderQueryArgs as any),
     })) as OrderWithItems;
 
+    await this.notifyOrderRemark(refreshed, userId, message);
+
     return this.toOrderResponse(refreshed, userId);
   }
 
@@ -396,6 +409,68 @@ export class OrdersService {
         },
       });
     }
+  }
+
+  private extractSellerIds(order: { items: { sellerId: string }[] }): string[] {
+    return Array.from(new Set(order.items.map((item) => item.sellerId)));
+  }
+
+  private async notifyOrderCreated(order: OrderWithItems) {
+    const sellerIds = this.extractSellerIds(order);
+    const payloads: CreateNotificationInput[] = [
+      {
+        userId: order.buyerId,
+        type: NotificationType.ORDER_STATUS,
+        title: 'Order placed successfully',
+        message: `Your order ${order.id} has been placed.`,
+        orderId: order.id,
+        metadata: { status: order.status },
+      },
+      ...sellerIds.map((sellerId) => ({
+        userId: sellerId,
+        type: NotificationType.ORDER_STATUS,
+        title: 'New order received',
+        message: `Order ${order.id} includes one or more of your products.`,
+        orderId: order.id,
+        metadata: { status: order.status },
+      })),
+    ];
+
+    await this.notifications.createNotifications(payloads);
+  }
+
+  private async notifyOrderRemark(
+    order: OrderWithItems,
+    authorId: string,
+    remark: string,
+  ) {
+    const recipients = new Set<string>();
+    if (order.buyerId !== authorId) {
+      recipients.add(order.buyerId);
+    }
+    for (const sellerId of this.extractSellerIds(order)) {
+      if (sellerId !== authorId) {
+        recipients.add(sellerId);
+      }
+    }
+
+    if (!recipients.size) {
+      return;
+    }
+
+    const truncatedRemark =
+      remark.length > 180 ? `${remark.slice(0, 177)}...` : remark;
+
+    await this.notifications.createNotifications(
+      Array.from(recipients).map((userId) => ({
+        userId,
+        type: NotificationType.ORDER_ACTIVITY,
+        title: 'New order remark',
+        message: `Order ${order.id} has a new remark: "${truncatedRemark}"`,
+        orderId: order.id,
+        metadata: { authorId },
+      })),
+    );
   }
 
   private toCartResponse(cart: CartWithItems): CartResponseDto {
