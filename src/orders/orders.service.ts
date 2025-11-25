@@ -55,6 +55,13 @@ const orderQueryArgs = {
             creatorId: true,
           },
         },
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            profileUrl: true,
+          },
+        },
       },
       orderBy: { createdAt: 'asc' },
     },
@@ -269,22 +276,22 @@ export class OrdersService {
   }
 
   async listBuyerOrders(userId: string): Promise<OrderResponseDto[]> {
-    const orders = ((await this.prisma.order.findMany({
+    const orders = (await this.prisma.order.findMany({
       where: { buyerId: userId },
       orderBy: { createdAt: 'desc' },
       include: orderQueryArgs.include as any,
-    })) as unknown) as OrderWithItems[];
+    })) as unknown as OrderWithItems[];
     return orders.map((order) => this.toOrderResponse(order, userId));
   }
 
   async listSales(userId: string): Promise<OrderResponseDto[]> {
-    const orders = ((await this.prisma.order.findMany({
+    const orders = (await this.prisma.order.findMany({
       where: {
         items: { some: { sellerId: userId } },
       },
       orderBy: { createdAt: 'desc' },
       include: orderQueryArgs.include as any,
-    })) as unknown) as OrderWithItems[];
+    })) as unknown as OrderWithItems[];
     return orders.map((order) => this.toOrderResponse(order, userId));
   }
 
@@ -302,11 +309,11 @@ export class OrdersService {
       }),
     ]);
 
-    const buyerOrders = ((buyerOrdersRaw as unknown) as OrderWithItems[]).map((order) =>
-      this.toOrderResponse(order, userId),
+    const buyerOrders = (buyerOrdersRaw as unknown as OrderWithItems[]).map(
+      (order) => this.toOrderResponse(order, userId),
     );
-    const sellerOrders = ((sellerOrdersRaw as unknown) as OrderWithItems[]).map((order) =>
-      this.toOrderResponse(order, userId),
+    const sellerOrders = (sellerOrdersRaw as unknown as OrderWithItems[]).map(
+      (order) => this.toOrderResponse(order, userId),
     );
 
     return plainToInstance(OrdersListResponseDto, {
@@ -426,7 +433,10 @@ export class OrdersService {
     });
   }
 
-  private toOrderResponse(order: OrderWithItems, viewerId?: string): OrderResponseDto {
+  private toOrderResponse(
+    order: OrderWithItems,
+    viewerId?: string,
+  ): OrderResponseDto {
     const items: OrderItemResponseDto[] = order.items.map((item) =>
       plainToInstance(OrderItemResponseDto, {
         id: item.id,
@@ -444,6 +454,11 @@ export class OrdersService {
           images: item.product.images ?? [],
           creatorId: item.product.creatorId,
         },
+        seller: item.seller && {
+          id: item.seller.id,
+          name: item.seller.name,
+          profileUrl: item.seller.profileUrl,
+        },
       }),
     );
 
@@ -460,7 +475,10 @@ export class OrdersService {
       },
     }));
 
-    const { viewerContext, allowedActions } = this.resolveViewerContext(order, viewerId);
+    const { viewerContext, allowedActions } = this.resolveViewerContext(
+      order,
+      viewerId,
+    );
 
     return plainToInstance(OrderResponseDto, {
       id: order.id,
@@ -477,11 +495,15 @@ export class OrdersService {
     });
   }
 
-  private resolveViewerContext(order: OrderWithItems, viewerId?: string): {
+  private resolveViewerContext(
+    order: OrderWithItems,
+    viewerId?: string,
+  ): {
     viewerContext?: ViewerContext;
     allowedActions?: string[];
   } {
-    if (!viewerId) return { viewerContext: undefined, allowedActions: undefined };
+    if (!viewerId)
+      return { viewerContext: undefined, allowedActions: undefined };
 
     const isBuyer = order.buyerId === viewerId;
     const isSeller = order.items.some((item) => item.sellerId === viewerId);

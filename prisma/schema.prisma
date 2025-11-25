@@ -34,6 +34,9 @@ model User {
   cartItemsSold  CartItem[]  @relation("SellerCartItems")
   orderItemsSold OrderItem[] @relation("SellerOrderItems")
   orderActivities OrderActivity[] @relation("OrderActivityAuthors")
+  addresses       UserAddress[]
+  accountSetting  UserAccountSetting?
+  helpRequests    UserHelpRequest[]
 
   @@index([email])
   @@index([isEmailVerified])
@@ -189,4 +192,67 @@ model OrderActivity {
 
   @@index([orderId])
   @@index([authorId])
+}
+
+enum AddressLabel {
+  HOME
+  WAREHOUSE
+  GODOWN
+  SHOP
+  OTHER
+}
+
+model UserAddress {
+  id            String       @id @default(uuid())
+  userId        String
+  label         AddressLabel @default(OTHER)
+  contactName   String       @db.VarChar(150)
+  contactNumber String?      @db.VarChar(20)
+  addressLine1  String       @db.VarChar(255)
+  addressLine2  String?      @db.VarChar(255)
+  city          String?      @db.VarChar(120)
+  state         String       @db.VarChar(120)
+  pincode       String       @db.VarChar(12)
+  landmark      String?      @db.VarChar(255)
+  isDefault     Boolean      @default(false) @map("is_default")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_addresses")
+}
+
+model UserAccountSetting {
+  id                         String   @id @default(uuid())
+  userId                     String   @unique
+  orderMessageNotifications  Boolean  @default(true) @map("order_message_notifications")
+  orderActivityNotifications Boolean  @default(true) @map("order_activity_notifications")
+  doNotDisturbEnabled        Boolean  @default(false) @map("dnd_enabled")
+  doNotDisturbFrom           DateTime? @map("dnd_from")
+  doNotDisturbTo             DateTime? @map("dnd_to")
+  createdAt                  DateTime @default(now()) @map("created_at")
+  updatedAt                  DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_account_settings")
+}
+
+model UserHelpRequest {
+  id            String   @id @default(uuid())
+  userId        String
+  name          String   @db.VarChar(150)
+  email         String?  @db.VarChar(255)
+  phone         String?  @db.VarChar(20)
+  subject       String   @db.VarChar(200)
+  message       String   @db.Text
+  attachmentUrl String?  @db.VarChar(500) @map("attachment_url")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_help_requests")
 }

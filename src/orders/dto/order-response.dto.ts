@@ -10,6 +10,12 @@ export class OrderProductSummaryDto {
   creatorId!: string;
 }
 
+export class OrderSellerSummaryDto {
+  id!: string;
+  name?: string | null;
+  profileUrl?: string | null;
+}
+
 export class OrderItemResponseDto {
   id!: string;
   productId!: string;
@@ -20,6 +26,7 @@ export class OrderItemResponseDto {
   createdAt!: Date;
   updatedAt!: Date;
   product?: OrderProductSummaryDto;
+  seller?: OrderSellerSummaryDto;
 }
 
 export class OrderActivityAuthorDto {

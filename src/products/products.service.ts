@@ -9,7 +9,7 @@ import { ProductResponseDto } from './dto/product-response.dto';
 export class ProductsService {
   private readonly logger = new Logger(ProductsService.name);
 
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(createDto: CreateProductDto, creatorId: string) {
     const product = await this.prisma.product.create({
@@ -28,7 +28,9 @@ export class ProductsService {
   }
 
   async findAll(current_userId: string) {
-    const products = await this.prisma.product.findMany({ where: { creatorId: current_userId } });
+    const products = await this.prisma.product.findMany({
+      where: { creatorId: current_userId },
+    });
     return products.map((p) => plainToInstance(ProductResponseDto, p));
   }
 
@@ -50,8 +52,14 @@ export class ProductsService {
     return plainToInstance(ProductResponseDto, product);
   }
 
-  async update(id: string, updateDto: UpdateProductDto, current_userId: string) {
-    const existing = await this.prisma.product.findUnique({ where: { id: id, creatorId: current_userId } });
+  async update(
+    id: string,
+    updateDto: UpdateProductDto,
+    current_userId: string,
+  ) {
+    const existing = await this.prisma.product.findUnique({
+      where: { id: id, creatorId: current_userId },
+    });
     if (!existing) throw new NotFoundException('Product not found');
 
     const data: any = {
@@ -72,7 +80,9 @@ export class ProductsService {
   }
 
   async remove(id: string, current_userId: string) {
-    const existing = await this.prisma.product.findUnique({ where: { id: id, creatorId: current_userId } });
+    const existing = await this.prisma.product.findUnique({
+      where: { id: id, creatorId: current_userId },
+    });
     if (!existing) throw new NotFoundException('Product not found');
     await this.prisma.product.delete({ where: { id } });
     return { success: true };

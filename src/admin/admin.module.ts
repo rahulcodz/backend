@@ -9,4 +9,3 @@ import { AdminOrdersService } from './orders.service';
   providers: [AdminOrdersService],
 })
 export class AdminModule {}
-

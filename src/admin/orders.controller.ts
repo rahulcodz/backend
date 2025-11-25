@@ -7,7 +7,13 @@ import {
   Post,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import * as authTypes from '../types/auth.types';
@@ -24,9 +30,13 @@ export class AdminOrdersController {
   constructor(private readonly adminOrdersService: AdminOrdersService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List received orders for the logged-in seller/admin' })
+  @ApiOperation({
+    summary: 'List received orders for the logged-in seller/admin',
+  })
   @ApiResponse({ status: 200, type: [OrderResponseDto] })
-  listReceivedOrders(@CurrentUser() user: authTypes.AuthUser): Promise<OrderResponseDto[]> {
+  listReceivedOrders(
+    @CurrentUser() user: authTypes.AuthUser,
+  ): Promise<OrderResponseDto[]> {
     return this.adminOrdersService.listReceivedOrders(user.userId);
   }
 
@@ -58,7 +68,11 @@ export class AdminOrdersController {
     @Param('orderId') orderId: string,
     @Body() dto: UpdateOrderStatusDto,
   ): Promise<OrderResponseDto> {
-    return this.adminOrdersService.updateOrderStatus(orderId, user.userId, dto.status);
+    return this.adminOrdersService.updateOrderStatus(
+      orderId,
+      user.userId,
+      dto.status,
+    );
   }
 
   @Post(':orderId/activity')
@@ -70,7 +84,10 @@ export class AdminOrdersController {
     @Param('orderId') orderId: string,
     @Body() dto: AddOrderActivityDto,
   ): Promise<OrderResponseDto> {
-    return this.adminOrdersService.addOrderActivity(orderId, user.userId, dto.message);
+    return this.adminOrdersService.addOrderActivity(
+      orderId,
+      user.userId,
+      dto.message,
+    );
   }
 }
-

@@ -10,4 +10,3 @@ export class AddOrderActivityDto {
   @Length(1, 500)
   message!: string;
 }
-

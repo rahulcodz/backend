@@ -5,14 +5,17 @@ import { UploadsService } from './uploads.service';
 import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
-  imports: [ConfigModule, ThrottlerModule.forRoot({
-    throttlers: [
-      {
-        ttl: 60,
-        limit: 2,
-      },
-    ],
-  })],
+  imports: [
+    ConfigModule,
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60,
+          limit: 2,
+        },
+      ],
+    }),
+  ],
   controllers: [UploadsController],
   providers: [UploadsService],
   exports: [UploadsService],

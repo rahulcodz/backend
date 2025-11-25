@@ -87,7 +87,7 @@ export class UploadsService {
             }),
           );
         } catch (error) {
-          debugger
+          debugger;
           throw new InternalServerErrorException(
             'Failed to upload image to S3',
           );

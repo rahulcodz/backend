@@ -30,7 +30,7 @@ import * as authTypes from '../types/auth.types';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class ProductsController {
-  constructor(private readonly productsService: ProductsService) { }
+  constructor(private readonly productsService: ProductsService) {}
 
   @Post()
   @ApiOperation({
@@ -130,7 +130,11 @@ export class ProductsController {
     description: 'Product updated',
     type: ProductResponseDto,
   })
-  async update(@Param('id') id: string, @Body() updateDto: UpdateProductDto, @CurrentUser() user: authTypes.AuthUser) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateProductDto,
+    @CurrentUser() user: authTypes.AuthUser,
+  ) {
     return this.productsService.update(id, updateDto, user.userId);
   }
 
@@ -140,7 +144,10 @@ export class ProductsController {
   @ApiResponse({ status: 204, description: 'Product deleted' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 404, description: 'Product not found' })
-  async remove(@Param('id') id: string, @CurrentUser() user: authTypes.AuthUser) {
+  async remove(
+    @Param('id') id: string,
+    @CurrentUser() user: authTypes.AuthUser,
+  ) {
     await this.productsService.remove(id, user.userId);
   }
 }

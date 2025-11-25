@@ -43,7 +43,9 @@ export class OrdersController {
     description: 'Cart retrieved',
     type: CartResponseDto,
   })
-  async getCart(@CurrentUser() user: authTypes.AuthUser): Promise<CartResponseDto> {
+  async getCart(
+    @CurrentUser() user: authTypes.AuthUser,
+  ): Promise<CartResponseDto> {
     return this.ordersService.getCart(user.userId);
   }
 
@@ -136,7 +138,9 @@ export class OrdersController {
     summary: 'List orders that include products sold by the user',
   })
   @ApiResponse({ status: 200, type: [OrderResponseDto] })
-  async listSales(@CurrentUser() user: authTypes.AuthUser): Promise<OrderResponseDto[]> {
+  async listSales(
+    @CurrentUser() user: authTypes.AuthUser,
+  ): Promise<OrderResponseDto[]> {
     return this.ordersService.listSales(user.userId);
   }
 
@@ -151,7 +155,9 @@ export class OrdersController {
   }
 
   @Post(':orderId/activity')
-  @ApiOperation({ summary: 'Add a remark to the order timeline (buyer/seller)' })
+  @ApiOperation({
+    summary: 'Add a remark to the order timeline (buyer/seller)',
+  })
   @ApiBody({ type: AddOrderActivityDto })
   @ApiResponse({ status: 200, type: OrderResponseDto })
   async addOrderActivity(
@@ -159,6 +165,10 @@ export class OrdersController {
     @Param('orderId') orderId: string,
     @Body() dto: AddOrderActivityDto,
   ): Promise<OrderResponseDto> {
-    return this.ordersService.addOrderActivity(user.userId, orderId, dto.message);
+    return this.ordersService.addOrderActivity(
+      user.userId,
+      orderId,
+      dto.message,
+    );
   }
 }

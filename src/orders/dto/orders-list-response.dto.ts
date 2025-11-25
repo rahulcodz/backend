@@ -8,4 +8,3 @@ export class OrdersListResponseDto {
   @ApiProperty({ type: [OrderResponseDto] })
   sellerOrders!: OrderResponseDto[];
 }
-
