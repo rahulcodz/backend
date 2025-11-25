@@ -11,6 +11,7 @@ import { ProductsModule } from './products/products.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { OrdersModule } from './orders/orders.module';
 import { AdminModule } from './admin/admin.module';
+import { BrowseModule } from './browse/browse.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { AdminModule } from './admin/admin.module';
     UploadsModule,
     OrdersModule,
     AdminModule,
+    BrowseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
