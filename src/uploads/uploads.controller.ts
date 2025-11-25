@@ -8,7 +8,6 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { Request } from 'express';
 import {
   ApiTags,
   ApiConsumes,

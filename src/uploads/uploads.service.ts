@@ -3,7 +3,6 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
-import { Request } from 'express';
 import { UploadResponseDto } from './dto/upload-response.dto';
 
 @Injectable()
@@ -85,10 +84,10 @@ export class UploadsService {
               Key: key,
               Body: file.buffer,
               ContentType: file.mimetype,
-              ...(this.acl ? { ACL: this.acl as any } : {}),
             }),
           );
         } catch (error) {
+          debugger
           throw new InternalServerErrorException(
             'Failed to upload image to S3',
           );
