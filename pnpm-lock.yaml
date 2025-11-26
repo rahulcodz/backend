@@ -53,6 +53,9 @@ importers:
       dotenv:
         specifier: ^17.2.3
         version: 17.2.3
+      multer:
+        specifier: ^2.0.2
+        version: 2.0.2
       nodemailer:
         specifier: ^6.9.8
         version: 6.10.1
