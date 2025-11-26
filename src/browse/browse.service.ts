@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { Prisma, Status } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { BrowseFiltersDto } from './dto/browse-filters.dto';
@@ -137,4 +133,3 @@ export class BrowseService {
     });
   }
 }
-

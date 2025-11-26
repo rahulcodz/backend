@@ -8,4 +8,3 @@ export class SellerProductPreviewDto {
   status!: Status;
   imageUrl?: string | null;
 }
-

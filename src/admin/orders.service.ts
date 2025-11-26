@@ -70,19 +70,22 @@ export class AdminOrdersService {
   ) {}
 
   async listReceivedOrders(userId: string): Promise<OrderResponseDto[]> {
-    const orders = ((await this.prisma.order.findMany({
+    const orders = (await this.prisma.order.findMany({
       where: {
         status: OrderStatus.Received,
         items: { some: { sellerId: userId } },
       },
       orderBy: { createdAt: 'desc' },
       include: adminOrderQueryArgs.include as any,
-    })) as unknown) as AdminOrderWithItems[];
+    })) as unknown as AdminOrderWithItems[];
 
     return orders.map((order) => this.toOrderResponse(order, userId));
   }
 
-  async acceptOrder(orderId: string, userId: string): Promise<OrderResponseDto> {
+  async acceptOrder(
+    orderId: string,
+    userId: string,
+  ): Promise<OrderResponseDto> {
     const order = await this.ensureSellerAccess(orderId, userId);
     if (order.status !== OrderStatus.Received) {
       throw new BadRequestException('Only received orders can be accepted');
@@ -123,10 +126,10 @@ export class AdminOrdersService {
       },
     });
 
-    const refreshed = ((await this.prisma.order.findUniqueOrThrow({
+    const refreshed = (await this.prisma.order.findUniqueOrThrow({
       where: { id: orderId },
       ...(adminOrderQueryArgs as any),
-    })) as unknown) as AdminOrderWithItems;
+    })) as unknown as AdminOrderWithItems;
 
     await this.notifyOrderRemark(refreshed, userId, message);
 
@@ -138,11 +141,11 @@ export class AdminOrdersService {
     status: OrderStatus,
     viewerId?: string,
   ): Promise<OrderResponseDto> {
-    const updated = ((await this.prisma.order.update({
+    const updated = (await this.prisma.order.update({
       where: { id: orderId },
       data: { status },
       include: adminOrderQueryArgs.include as any,
-    })) as unknown) as AdminOrderWithItems;
+    })) as unknown as AdminOrderWithItems;
 
     await this.notifyStatusChange(updated, viewerId);
 
@@ -167,7 +170,10 @@ export class AdminOrdersService {
     return order;
   }
 
-  private toOrderResponse(order: AdminOrderWithItems, viewerId?: string): OrderResponseDto {
+  private toOrderResponse(
+    order: AdminOrderWithItems,
+    viewerId?: string,
+  ): OrderResponseDto {
     const items: OrderItemResponseDto[] = order.items.map((item) =>
       plainToInstance(OrderItemResponseDto, {
         id: item.id,
@@ -201,7 +207,10 @@ export class AdminOrdersService {
       },
     }));
 
-    const { viewerContext, allowedActions } = this.resolveSellerViewerContext(order, viewerId);
+    const { viewerContext, allowedActions } = this.resolveSellerViewerContext(
+      order,
+      viewerId,
+    );
 
     return plainToInstance(OrderResponseDto, {
       id: order.id,
@@ -218,11 +227,16 @@ export class AdminOrdersService {
     });
   }
 
-  private resolveSellerViewerContext(order: AdminOrderWithItems, viewerId?: string) {
-    if (!viewerId) return { viewerContext: undefined, allowedActions: undefined };
+  private resolveSellerViewerContext(
+    order: AdminOrderWithItems,
+    viewerId?: string,
+  ) {
+    if (!viewerId)
+      return { viewerContext: undefined, allowedActions: undefined };
 
     const isSeller = order.items.some((item) => item.sellerId === viewerId);
-    if (!isSeller) return { viewerContext: undefined, allowedActions: undefined };
+    if (!isSeller)
+      return { viewerContext: undefined, allowedActions: undefined };
 
     const allowedActions: string[] = ['addRemark', 'updateStatus'];
     if (order.status === OrderStatus.Received) {
@@ -303,4 +317,3 @@ export class AdminOrdersService {
     );
   }
 }
-

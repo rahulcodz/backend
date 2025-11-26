@@ -12,4 +12,3 @@ export class NotificationResponseDto {
   readAt?: Date | null;
   createdAt!: Date;
 }
-

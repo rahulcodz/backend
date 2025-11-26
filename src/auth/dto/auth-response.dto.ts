@@ -57,3 +57,11 @@ export class ResendVerificationResponseDto {
   })
   message: string;
 }
+
+export class LoginOtpRequestedResponseDto {
+  @ApiProperty({
+    description: 'Success message',
+    example: 'Login OTP sent to your email address',
+  })
+  message: string;
+}

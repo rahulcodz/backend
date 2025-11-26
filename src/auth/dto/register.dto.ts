@@ -34,4 +34,26 @@ export class RegisterDto {
   @IsOptional()
   @MaxLength(100, { message: 'Name must not exceed 100 characters' })
   name?: string;
+
+  @ApiProperty({
+    description: 'User phone number',
+    example: '+14155552671',
+    required: false,
+    maxLength: 20,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(20, { message: 'Phone number must not exceed 20 characters' })
+  phone?: string;
+
+  @ApiProperty({
+    description: 'User location, such as city and state',
+    example: 'San Francisco, CA',
+    required: false,
+    maxLength: 255,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(255, { message: 'Location must not exceed 255 characters' })
+  location?: string;
 }

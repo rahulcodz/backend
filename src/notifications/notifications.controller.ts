@@ -49,4 +49,3 @@ export class NotificationsController {
     return { updated };
   }
 }
-

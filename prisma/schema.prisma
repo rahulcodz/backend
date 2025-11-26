@@ -25,6 +25,8 @@ model User {
   isEmailVerified          Boolean   @default(false) @map("is_email_verified")
   emailVerificationCode    String?   @map("email_verification_code") @db.VarChar(10)
   emailVerificationExpires DateTime? @map("email_verification_expires")
+  loginOtpCode             String?   @map("login_otp_code") @db.VarChar(10)
+  loginOtpExpires          DateTime? @map("login_otp_expires")
   createdAt                DateTime  @default(now()) @map("created_at")
   updatedAt                DateTime  @updatedAt @map("updated_at")
 

@@ -140,4 +140,3 @@ export class NotificationsService {
     this.logger.debug(`Created ${payloads.length} notifications`);
   }
 }
-

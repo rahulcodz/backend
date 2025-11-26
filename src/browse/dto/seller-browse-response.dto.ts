@@ -10,4 +10,3 @@ export class SellerBrowseResponseDto {
   topProducts!: SellerProductPreviewDto[];
   productCount!: number;
 }
-

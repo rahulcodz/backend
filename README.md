@@ -74,6 +74,20 @@ Optional overrides:
 - `AWS_S3_ACL` (for example `public-read`)
 - `AWS_S3_ENDPOINT` and `AWS_S3_FORCE_PATH_STYLE` for S3-compatible storage
 
+## Passwordless login via email OTP
+
+To let users request passwordless logins, the authentication service now exposes:
+
+- `POST /auth/login/request-otp` – accepts an email address and sends a one-time code.
+- `POST /auth/login/verify-otp` – accepts the email and OTP code, returning a JWT on success.
+
+Add the following optional environment variables to customize the experience:
+
+- `LOGIN_OTP_LENGTH` (default `6`)
+- `LOGIN_OTP_TTL_MINUTES` (default `10`)
+
+Both endpoints require the user email to be verified before an OTP can be issued.
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.

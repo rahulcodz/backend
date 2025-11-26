@@ -13,7 +13,10 @@ import {
 } from '@prisma/client';
 import { plainToInstance } from 'class-transformer';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotificationsService, CreateNotificationInput } from '../notifications/notifications.service';
+import {
+  NotificationsService,
+  CreateNotificationInput,
+} from '../notifications/notifications.service';
 import {
   AddCartItemDto,
   CartItemResponseDto,

@@ -32,4 +32,3 @@ export class BrowseController {
     return this.browseService.getSellers(filters);
   }
 }
-

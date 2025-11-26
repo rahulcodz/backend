@@ -53,6 +53,16 @@ export class EnvironmentVariables {
   @IsNumber()
   @IsOptional()
   EMAIL_VERIFICATION_CODE_LENGTH?: number = 6;
+
+  @Transform(({ value }) => parseInt(value, 10))
+  @IsNumber()
+  @IsOptional()
+  LOGIN_OTP_LENGTH?: number = 6;
+
+  @Transform(({ value }) => parseInt(value, 10))
+  @IsNumber()
+  @IsOptional()
+  LOGIN_OTP_TTL_MINUTES?: number = 10;
 }
 
 export function validate(config: Record<string, unknown>) {

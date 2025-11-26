@@ -10,6 +10,9 @@ import {
   RegisterResponseDto,
   VerifyEmailResponseDto,
   ResendVerificationResponseDto,
+  RequestLoginOtpDto,
+  LoginWithOtpDto,
+  LoginOtpRequestedResponseDto,
 } from './dto';
 
 @ApiTags('Authentication')
@@ -89,5 +92,47 @@ export class AuthController {
     @Body() resendVerificationDto: ResendVerificationDto,
   ): Promise<ResendVerificationResponseDto> {
     return this.authService.resendVerificationEmail(resendVerificationDto);
+  }
+
+  @Post('login/request-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Request a login OTP via email' })
+  @ApiBody({ type: RequestLoginOtpDto })
+  @ApiResponse({
+    status: 200,
+    description: 'OTP sent successfully',
+    type: LoginOtpRequestedResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request or unverified email',
+  })
+  async requestLoginOtp(
+    @Body() requestLoginOtpDto: RequestLoginOtpDto,
+  ): Promise<LoginOtpRequestedResponseDto> {
+    return this.authService.requestLoginOtp(requestLoginOtpDto);
+  }
+
+  @Post('login/verify-otp')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Login using OTP sent via email' })
+  @ApiBody({ type: LoginWithOtpDto })
+  @ApiResponse({
+    status: 200,
+    description: 'User logged in successfully using OTP',
+    type: AuthResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid OTP or OTP expired',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized or unverified email',
+  })
+  async loginWithOtp(
+    @Body() loginWithOtpDto: LoginWithOtpDto,
+  ): Promise<AuthResponseDto> {
+    return this.authService.loginWithOtp(loginWithOtpDto);
   }
 }

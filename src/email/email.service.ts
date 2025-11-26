@@ -68,6 +68,27 @@ export class EmailService {
     }
   }
 
+  async sendLoginOtpEmail(
+    email: string,
+    otpCode: string,
+    name?: string,
+  ): Promise<void> {
+    const mailOptions = {
+      from: process.env.EMAIL_FROM,
+      to: email,
+      subject: 'Your Login OTP Code',
+      html: this.getLoginOtpEmailTemplate(otpCode, name),
+    };
+
+    try {
+      await this.transporter.sendMail(mailOptions);
+      this.logger.log(`Login OTP email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send login OTP email to ${email}:`, error);
+      throw new Error('Failed to send login OTP email');
+    }
+  }
+
   private getVerificationEmailTemplate(
     verificationCode: string,
     name?: string,
@@ -147,6 +168,44 @@ export class EmailService {
             
             <p>This link will expire in 24 hours.</p>
             <p>If you didn't request a password reset, please ignore this email.</p>
+          </div>
+          <div class="footer">
+            <p>This is an automated message, please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getLoginOtpEmailTemplate(otpCode: string, name?: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>Your Login OTP</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #28a745; color: white; padding: 20px; text-align: center; }
+          .content { padding: 30px; background-color: #f9f9f9; }
+          .code { font-size: 32px; font-weight: bold; color: #28a745; text-align: center; margin: 20px 0; padding: 15px; background-color: white; border: 2px dashed #28a745; }
+          .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Login Verification</h1>
+          </div>
+          <div class="content">
+            <h2>Hello${name ? ` ${name}` : ''}!</h2>
+            <p>Use the one-time password below to complete your login. This code is valid for a limited time and can be used only once.</p>
+
+            <div class="code">${otpCode}</div>
+
+            <p>If you didn't request this code, you can safely ignore this email.</p>
           </div>
           <div class="footer">
             <p>This is an automated message, please do not reply to this email.</p>

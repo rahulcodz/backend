@@ -1,6 +1,13 @@
 import { NotificationType } from '@prisma/client';
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  Max,
+  Min,
+} from 'class-validator';
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
@@ -33,4 +40,3 @@ export class ListNotificationsDto {
   @Max(MAX_LIMIT)
   limit?: number = DEFAULT_LIMIT;
 }
-

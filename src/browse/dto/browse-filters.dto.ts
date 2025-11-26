@@ -23,4 +23,3 @@ export class BrowseFiltersDto {
   @Max(MAX_LIMIT)
   limit?: number = DEFAULT_LIMIT;
 }
-

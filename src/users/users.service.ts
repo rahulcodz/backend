@@ -373,13 +373,10 @@ export class UsersService {
     });
 
     if (!address || address.userId !== userId) {
-      this.logger.warn(
-        `Address ${addressId} not found for user ID: ${userId}`,
-      );
+      this.logger.warn(`Address ${addressId} not found for user ID: ${userId}`);
       throw new NotFoundException('Address not found');
     }
 
     return address;
   }
-
 }

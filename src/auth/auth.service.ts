@@ -20,6 +20,9 @@ import {
   RegisterResponseDto,
   VerifyEmailResponseDto,
   ResendVerificationResponseDto,
+  RequestLoginOtpDto,
+  LoginWithOtpDto,
+  LoginOtpRequestedResponseDto,
 } from './dto';
 import * as nodemailer from 'nodemailer';
 
@@ -45,7 +48,7 @@ export class AuthService {
   }
 
   async register(registerDto: RegisterDto): Promise<RegisterResponseDto> {
-    const { email, password, name } = registerDto;
+    const { email, password, name, phone, location } = registerDto;
 
     this.logger.log(`Registration attempt for email: ${email}`);
 
@@ -67,6 +70,8 @@ export class AuthService {
         email,
         password: hashedPassword,
         name,
+        phone,
+        location,
         emailVerificationCode: verificationCode,
         emailVerificationExpires: verificationExpires,
       },
@@ -284,11 +289,146 @@ export class AuthService {
     };
   }
 
+  async requestLoginOtp(
+    requestLoginOtpDto: RequestLoginOtpDto,
+  ): Promise<LoginOtpRequestedResponseDto> {
+    const { email } = requestLoginOtpDto;
+
+    this.logger.log(`Login OTP request for email: ${email}`);
+
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      this.logger.warn(`Login OTP request failed: User not found for ${email}`);
+      throw new UnauthorizedException('Invalid email or OTP');
+    }
+
+    if (!user.isEmailVerified) {
+      this.logger.warn(
+        `Login OTP request failed: Email not verified for ${email}`,
+      );
+      throw new BadRequestException(
+        'Please verify your email before using OTP login',
+      );
+    }
+
+    const otp = this.generateLoginOtp();
+    const ttlMinutes = parseInt(process.env.LOGIN_OTP_TTL_MINUTES || '10', 10);
+    const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        loginOtpCode: otp,
+        loginOtpExpires: expiresAt,
+      },
+    });
+
+    try {
+      await this.emailService.sendLoginOtpEmail(
+        email,
+        otp,
+        user.name ?? undefined,
+      );
+      this.logger.log(`Login OTP email sent to ${email}`);
+    } catch (error) {
+      this.logger.error(`Failed to send login OTP to ${email}:`, error);
+      throw new BadRequestException('Failed to send login OTP');
+    }
+
+    return {
+      message: 'Login OTP sent to your email address',
+    };
+  }
+
+  async loginWithOtp(
+    loginWithOtpDto: LoginWithOtpDto,
+  ): Promise<AuthResponseDto> {
+    const { email, otp } = loginWithOtpDto;
+
+    this.logger.log(`OTP login attempt for email: ${email}`);
+
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      this.logger.warn(`OTP login failed: User not found for ${email}`);
+      throw new UnauthorizedException('Invalid email or OTP');
+    }
+
+    if (!user.isEmailVerified) {
+      this.logger.warn(`OTP login failed: Email not verified for ${email}`);
+      throw new UnauthorizedException(
+        'Please verify your email before logging in',
+      );
+    }
+
+    if (!user.loginOtpCode || !user.loginOtpExpires) {
+      this.logger.warn(`OTP login failed: No active OTP for ${email}`);
+      throw new BadRequestException('No active OTP. Please request a new one.');
+    }
+
+    if (user.loginOtpExpires < new Date()) {
+      this.logger.warn(`OTP login failed: OTP expired for ${email}`);
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          loginOtpCode: null,
+          loginOtpExpires: null,
+        },
+      });
+      throw new BadRequestException(
+        'OTP has expired. Please request a new one.',
+      );
+    }
+
+    if (user.loginOtpCode !== otp) {
+      this.logger.warn(`OTP login failed: Invalid OTP for ${email}`);
+      throw new BadRequestException('Invalid OTP');
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        loginOtpCode: null,
+        loginOtpExpires: null,
+      },
+    });
+
+    const payload = { sub: user.id, email: user.email };
+    const token = this.jwtService.sign(payload);
+
+    const userResponse = plainToClass(UserResponseDto, updatedUser, {
+      excludeExtraneousValues: true,
+    });
+
+    this.logger.log(`OTP login successful for email: ${email}`);
+
+    return {
+      access_token: token,
+      user: userResponse,
+    };
+  }
+
   private generateVerificationCode(): string {
-    const length = parseInt(process.env.EMAIL_VERIFICATION_CODE_LENGTH || '6');
-    return Math.floor(
-      Math.pow(10, length - 1) +
-        Math.random() * (Math.pow(10, length) - Math.pow(10, length - 1) - 1),
-    ).toString();
+    const length = parseInt(
+      process.env.EMAIL_VERIFICATION_CODE_LENGTH || '6',
+      10,
+    );
+    return this.generateNumericCode(length);
+  }
+
+  private generateLoginOtp(): string {
+    const length = parseInt(process.env.LOGIN_OTP_LENGTH || '6', 10);
+    return this.generateNumericCode(length);
+  }
+
+  private generateNumericCode(length: number): string {
+    const min = Math.pow(10, length - 1);
+    const max = Math.pow(10, length) - 1;
+    return Math.floor(min + Math.random() * (max - min + 1)).toString();
   }
 }
